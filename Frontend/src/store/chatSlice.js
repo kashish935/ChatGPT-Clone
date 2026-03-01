@@ -21,12 +21,9 @@ const chatSlice = createSlice({
         },
         startNewChat: {
             reducer(state, action) {
-                const { id, title } = action.payload;
-                state.chats.unshift({ id, title: title || 'New Chat', messages: [] });
-                state.activeChatId = id;
-            },
-            prepare(title) {
-                return { payload: { id: nanoid(), title: title || 'New Chat' } };
+                const { _id, title } = action.payload;                
+                state.chats.unshift({ _id , title: title || 'New Chat', messages: [] });
+                state.activeChatId = _id;
             }
         },
         selectChat(state, action) {
@@ -40,6 +37,9 @@ const chatSlice = createSlice({
         },
         sendingFinished(state) {
             state.isSending = false;
+        },
+        setChats(state, action) {
+            state.chats = action.payload;
         },
         addUserMessage: {
             reducer(state, action) {
@@ -76,6 +76,7 @@ export const {
     setInput,
     sendingStarted,
     sendingFinished,
+    setChats,
     addUserMessage,
     addAIMessage
 } = chatSlice.actions;

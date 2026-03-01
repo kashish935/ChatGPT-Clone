@@ -7,7 +7,7 @@ const ChatMessages = ({ messages, isSending }) => {
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages.length, isSending]);
   return (
     <div className="messages" aria-live="polite">
-      {messages.map(m => (
+      {messages.map((m,index) => (
         <div key={m.id} className={`msg msg-${m.role}${m.error ? ' msg-error' : ''}`}>
           <div className="msg-role" aria-hidden="true">{m.role === 'user' ? 'You' : 'AI'}</div>
           <div className="msg-bubble">{m.content}</div>

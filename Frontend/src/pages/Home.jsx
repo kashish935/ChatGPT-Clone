@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { io } from "socket.io-client";
 import ChatMobileBar from '../components/chat/ChatMobileBar.jsx';
 import ChatSidebar from '../components/chat/ChatSideBar.jsx';
 import ChatMessages from '../components/chat/ChatMessages.jsx';
@@ -7,6 +8,7 @@ import '../components/chat/ChatLayout.css';
 import { fakeAIReply } from '../components/chat/aiClient.js';
 
 import { useDispatch, useSelector } from 'react-redux';
+import axios from 'axios';
 import {
   ensureInitialChat,
   startNewChat,
@@ -14,6 +16,7 @@ import {
   setInput,
   sendingStarted,
   sendingFinished,
+  setChats,
   addUserMessage,
   addAIMessage
 } from '../store/chatSlice.js';
@@ -26,38 +29,119 @@ const Home = () => {
   const isSending = useSelector(state => state.chat.isSending);
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
 
-  const activeChat = chats.find(c => c.id === activeChatId) || null;
-  const [messages, setMessages] = useState([])
+  const [socket, setsocket] = useState(null);
 
-  const handleNewChat = useCallback(() => {
+  const activeChat = chats.find(c => c.id === activeChatId) || null;
+  const [messages, setMessages] = useState([
+    /*{
+      type: 'user',
+      content: 'Hello, AI! how are you?'
+    },
+    {
+      type: 'ai',
+      content: 'I am doing well, thank you for asking!'
+    }*/
+  ]);
+
+  const handleNewChat = async() => {
     // Prompt user for title of new chat, fallback to 'New Chat'
     let title = window.prompt('Enter a title for the new chat:', '');
     if (title) title = title.trim();
-    if (!title) title = 'New Chat';
-    dispatch(startNewChat(title));
+    if (!title) return;
+
+    const response = await axios.post("http://localhost:3000/api/chat",{
+      title
+    },{
+      withCredentials: true
+    })
+
+    getMessages(response.data.chat._id);
+
+    dispatch(startNewChat(response.data.chat));
+
     setSidebarOpen(false);
-  }, [dispatch]);
+  }
 
   // Ensure at least one chat exists initially
   useEffect(() => {
-    //dispatch(ensureInitialChat());
-  }, [dispatch]);
+    axios.get("http://localhost:3000/api/chat", {
+      withCredentials: true,
+    }).then(response => {
+      dispatch(setChats(response.data.chats.reverse()));
+    })
 
-  const sendMessage = useCallback(async () => {
+    const tempSocket = io("http://localhost:3000",{
+      withCredentials: true,
+    })
+
+    tempSocket.on("connect", () => {
+  console.log("Socket connected:", tempSocket.id);
+});
+
+    tempSocket.on("ai-response",(messagePayload)=>{
+        console.log("Received AI message:", messagePayload);
+        
+        setMessages((prevMessages) => [...prevMessages, {
+          type: 'ai',
+          content: messagePayload.content,
+        }]);
+
+        dispatch(sendingFinished());
+        
+    })//socket se ai-message event ko listen karna hoga taki jab bhi backend se ai-message aaye to usko receive karke console me print kar sake
+
+    setsocket(tempSocket);
+
+    return () => tempSocket.disconnect();
+
+  }, []);
+
+  const sendMessage = async () => {
     const trimmed = input.trim();
+
+    console.log("Sending messaage:", trimmed);
+
     if (!trimmed || !activeChatId || isSending) return;
     dispatch(sendingStarted());
-    dispatch(addUserMessage(activeChatId, trimmed));
+
+    const newMessages = [...messages,{
+      role: 'user',
+      content: trimmed
+    }];
+
+    setMessages(newMessages);
+
     dispatch(setInput(''));
-    try {
+
+    socket.emit("ai-message", {
+      chat : activeChatId,
+      content : trimmed
+    })
+    /*try {
       const reply = await fakeAIReply(trimmed);
       dispatch(addAIMessage(activeChatId, reply));
   } catch {
       dispatch(addAIMessage(activeChatId, 'Error fetching AI response.', true));
     } finally {
       dispatch(sendingFinished());
-    }
-  }, [input, activeChatId, isSending, dispatch]);
+    }*/
+  };
+
+
+  const getMessages = async (chatId) => {
+
+    const response = await axios.get(`http://localhost:3000/api/chat/messages/${chatId}`, {
+      withCredentials: true,
+    })
+
+    console.log("Fected messages", response.data.messages);
+    
+    setMessages(response.data.messages.map(m => ({
+      role: m.role === 'user' ? 'user' : 'ai',
+      content: m.content
+    })));
+
+  }
 
 
   return (
@@ -69,7 +153,13 @@ const Home = () => {
       <ChatSidebar
         chats={chats}
         activeChatId={activeChatId}
-        onSelectChat={(id) => { dispatch(selectChat(id)); setSidebarOpen(false); }}
+        onSelectChat={(id) => 
+          { 
+            dispatch(selectChat(id)); 
+            setSidebarOpen(false); 
+            getMessages(id);
+          }
+        }
         onNewChat={handleNewChat}
         open={sidebarOpen}
       />
@@ -82,12 +172,15 @@ const Home = () => {
           </div>
         )}
         <ChatMessages messages={messages} isSending={isSending} />
-        <ChatComposer
+        {
+          activeChatId &&
+          <ChatComposer
           input={input}
           setInput={(v) => dispatch(setInput(v))}
             onSend={sendMessage}
           isSending={isSending}
         />
+        }
       </main>
       {sidebarOpen && (
         <button
