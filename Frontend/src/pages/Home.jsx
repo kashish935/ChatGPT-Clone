@@ -9,6 +9,8 @@ import { fakeAIReply } from '../components/chat/aiClient.js';
 
 import { useDispatch, useSelector } from 'react-redux';
 import axios from 'axios';
+
+
 import {
   ensureInitialChat,
   startNewChat,
@@ -20,6 +22,8 @@ import {
   addUserMessage,
   addAIMessage
 } from '../store/chatSlice.js';
+
+
 const Home = () => {
   // Previous chats list
   const dispatch = useDispatch();
@@ -64,6 +68,7 @@ const Home = () => {
 
   // Ensure at least one chat exists initially
   useEffect(() => {
+
     axios.get("http://localhost:3000/api/chat", {
       withCredentials: true,
     }).then(response => {
@@ -75,8 +80,8 @@ const Home = () => {
     })
 
     tempSocket.on("connect", () => {
-  console.log("Socket connected:", tempSocket.id);
-});
+      console.log("Socket connected:", tempSocket.id);
+    });
 
     tempSocket.on("ai-response",(messagePayload)=>{
         console.log("Received AI message:", messagePayload);
@@ -177,7 +182,7 @@ const Home = () => {
           <ChatComposer
           input={input}
           setInput={(v) => dispatch(setInput(v))}
-            onSend={sendMessage}
+          onSend={sendMessage}
           isSending={isSending}
         />
         }
