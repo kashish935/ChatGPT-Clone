@@ -12,7 +12,9 @@
     flex-direction: column; 
     height: 100dvh; 
     padding-top: calc(52px + env(safe-area-inset-top, 0)); 
-    position:relative; 
+    position:relative;
+    align-items: center;
+    overflow: hidden;
 }
 
 @media (min-width: 960px) { 

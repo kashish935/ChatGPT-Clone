@@ -5,6 +5,7 @@
     position: sticky; /* stays above scroll end */
     bottom: 0;
     width: 100%;
+    max-width: 100%;
     padding: 24px 0 32px; /* vertical breathing room */
     display: flex;
     justify-content: center;

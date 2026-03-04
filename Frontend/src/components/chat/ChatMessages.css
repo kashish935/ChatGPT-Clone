@@ -7,6 +7,9 @@
     flex-direction: column;
     gap: var(--space-5);
     max-width: 820px;
+    margin: 0 auto;
+    padding: 0 32px;
+    padding-top: 20px;
 }
 
 .messages::-webkit-scrollbar {
@@ -163,5 +166,20 @@
 
     40% {
         opacity: 1;
+    }
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 600px) {
+    .messages {
+        padding: 0 16px;
+        padding-top: 16px;
+    }
+}
+
+@media (max-width: 959px) {
+    .messages {
+        padding: 0 20px;
+        padding-top: 16px;
     }
 }
